@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "static website with Amazon S3 and CloudFront"
+
+Parameters:
+  # WebsiteDomainName:
+  #   Type: String
+  #   Description: "The domain name for your website (e.g., example.com)"
+  IndexDocument:
+    Type: String
+    Description: "name of applicaion file"
+    Default: "index.html"
+  S3BucketName:
+    Type: String
+    Description: "The name for the S3 bucket to host your website"
+    # Default: !Sub "${WebsiteDomainName}-website-bucket"
+    Default: "static-website-bucket-1"
+
+Resources:
+  myStaticWebsiteHostingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      # AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: !Ref IndexDocument
+        # ErrorDocument: error.html
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      # VersioningConfiguration:  #to enable bucket versioning
+      #   Status: Enabled
+
+  myStaticWebsiteHostingBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref myStaticWebsiteHostingBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Join 
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref myStaticWebsiteHostingBucket
+                - '/*'
+                
+  # CloudFrontDistribution:
+  #   Type: AWS::CloudFront::Distribution
+  #   Properties:
+  #     DistributionConfig:
+  #       Origins:
+  #         - DomainName: !GetAtt WebsiteBucket.DomainName
+  #           Id: S3Origin
+  #           S3OriginConfig:
+  #             OriginAccessIdentity: ''
+  #       Enabled: 'true'
+  #       DefaultRootObject: index.html
+  #       Aliases:
+  #         - !Ref WebsiteDomainName
+  #       DefaultCacheBehavior:
+  #         TargetOriginId: S3Origin
+  #         ViewerProtocolPolicy: redirect-to-https
+  #         ForwardedValues:
+  #           QueryString: 'false'
+        # ViewerCertificate:
+        #   AcmCertificateArn: "Your_ACM_Certificate_ARN" # Replace with your ACM certificate ARN
+        #   SslSupportMethod: sni-only
+
+
+Outputs:
+  outputWebsiteURL:
+    Value: !GetAtt 
+      - myStaticWebsiteHostingBucket
+      - WebsiteURL
+    Description: Static website URL
+    Export:
+      Name: WebsiteURL
+      # Name: !Sub "${AWS::StackName}-WebsiteURL"

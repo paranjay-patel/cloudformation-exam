@@ -1,0 +1,163 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >
+  creating ecs with 2 service. one service runs application and other runs database. 
+
+Metadata:
+  AWS::CloudFormation::Interface: 
+    ParameterGroups:  
+      - Label:  
+          default: VPC Parameters 
+        Parameters: 
+         - VpcCIDRBlock 
+
+      - Label:  
+          default: DB Parameters 
+        Parameters: 
+         - DBInstanceIdentifier 
+         - DBName 
+         - MasterUsername 
+         - MasterUserPassword 
+         - EngineVersion 
+         - BackupRetentionPeriod 
+         - AllocatedStorage 
+         - DBInstanceClass 
+         - MultiAZ
+
+Parameters:
+  VpcCIDRBlock:
+    Description: CIDR block for the VPC
+    Default: 10.0.0.0/16
+    Type: String
+
+  DBInstanceIdentifier:
+   AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+   ConstraintDescription: The instance name should begin with a letter and should contain only alphanumerics
+   Default: mypostgresinstance
+   Description: Name of the instance identifier 
+   MaxLength: 60
+   MinLength: 1
+   Type: String
+ 
+  DBName:
+   AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+   ConstraintDescription: The DB name should begin with a letter and should contain only alphanumerics
+   Default: lwhub
+   Description: Postgres database name
+   MaxLength: 64
+   MinLength: 1
+   Type: String
+ 
+  MasterUsername:
+   AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+   ConstraintDescription: The DB username should begin with a letter and should contain only alphanumerics
+   Default: masteruser
+   Description: Username for postgres database access
+   MaxLength: 16
+   MinLength: 1
+   NoEcho: true
+   Type: String
+ 
+  MasterUserPassword:
+   AllowedPattern: '[a-zA-Z0-9]*'
+   ConstraintDescription: The db passoword should contain only alphanumerics
+   Default: masteruser
+   Description: Password for postgres database masteruser
+   MaxLength: 41
+   MinLength: 8
+   NoEcho: true
+   Type: String
+  
+  BackupRetentionPeriod:
+   ConstraintDescription: DB backup retention period should be between 0 and 35 days
+   Default: 0
+   Description: The number of days for which the automatic DB snapshots are retained
+   MaxValue: 35
+   MinValue: 0
+   Type: Number
+ 
+  AllocatedStorage:
+   ConstraintDescription: The size allocated for the instance should between 5 and 1024Gb
+   Default: 20
+   Description: The size of the instance in Gb
+   MaxValue: 65536
+   MinValue: 5
+   Type: Number
+ 
+  DBInstanceClass:
+   AllowedValues:
+    - db.t3.2xlarge
+    - db.t3.xlarge
+    - db.t3.large
+    - db.t3.medium
+    - db.t3.small
+    - db.t3.micro
+   ConstraintDescription: Select a valid database instance type
+   Default: db.t3.micro
+   Description: The database instance type
+   Type: String
+ 
+  MultiAZ:
+   AllowedValues:
+    - true
+    - false
+   ConstraintDescription: Select either true or false
+   Default: false
+   Description: Creates a Multi-AZ Postgres Amazon RDS instance
+   Type: String
+ 
+  Engine:
+   # AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+   ConstraintDescription: Databse to use
+   Default: postgres
+   Description: The name of the database engine that you want to use for this DB instance
+   Type: String
+ 
+  EngineVersion:
+   # AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+   ConstraintDescription: database version should be valid
+   Default: "15"
+   Description: The version number of the database engine to use.
+   Type: String
+
+# Rules:
+#   set of rules
+
+# Mappings:
+#   set of mappings
+
+# Conditions:
+#   set of conditions
+
+# Transform:
+#   set of transforms
+
+Resources:
+  VPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/network-stack.yml
+      Parameters:
+        VpcCIDRBlock: !Ref VpcCIDRBlock
+        
+  RDS:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: VPC
+    Properties:
+      TemplateURL: https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/RDS.yml
+      Parameters:  
+        AllocatedStorage: !Ref AllocatedStorage
+        AvailabilityZone: !Select [ 0, !GetAZs '' ]
+        BackupRetentionPeriod: !Ref BackupRetentionPeriod
+        DBInstanceClass: !Ref DBInstanceClass
+        DBInstanceIdentifier: !Ref DBInstanceIdentifier
+        DBName: !Ref DBName
+        Engine: !Ref Engine
+        EngineVersion: !Ref EngineVersion
+        MasterUsername: !Ref MasterUsername
+        MasterUserPassword: !Ref MasterUserPassword
+        MultiAZ: !Ref MultiAZ 
+
+# Outputs:
+#   set of outputs

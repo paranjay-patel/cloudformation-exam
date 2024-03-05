@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "static website with Amazon S3 and CloudFront"
+
+Parameters:
+  # WebsiteDomainName:
+  #   Type: String
+  #   Description: "The domain name for your website (e.g., example.com)"
+  IndexDocument:
+    Type: String
+    Description: "name of applicaion file"
+    Default: "index.html"
+  S3BucketName:
+    Type: String
+    Description: "The name for the S3 bucket to host your website"
+    # Default: !Sub "${WebsiteDomainName}-website-bucket"
+    Default: "static-website-bucket-1"
+
+  #You can use CloudFormation Condition function to provision second (subdomain) bucket only if a subdomain was specified as a paramete
+  paramSubdomain:
+    Description: OPTIONAL. Specify a subdomain (such as 'www' or 'apex' for www.example.com or apex.example.com). You can leave it empty to skip.
+    Type: String
+    Default: www
+
+  paramRootDomain:
+    Description: Specify a root domain for your website (such as example.com)
+    Type: String  
+  
+  paramHostedZoneId:
+    Description: Specify a public hosted zone ID for root domain
+    Type: String
+
+  paramUniqueTagName:
+    Description: Specify a unique name for tag
+    Type: String
+    Default: static-website-hosting-to-s3
+    AllowedPattern: "[\\x20-\\x7E]*"
+    ConstraintDescription: Must contain only ASCII characters
+
+## ==================== MAPPINGS ==================== ##
+Mappings:
+  RegionMap: # based on https://docs.aws.amazon.com/general/latest/gr/s3.html#s3_website_region_endpoints
+    us-east-1:
+      S3HostedZoneId: Z3AQBSTGFYJSTF
+    us-west-1:
+      S3HostedZoneId: Z2F56UZL2M1ACD
+    us-west-2:
+      S3HostedZoneId: Z3BJ6K6RIION7M
+    eu-central-1:
+      S3HostedZoneId: Z21DNDUVLTQW6Q
+    eu-west-1:
+      S3HostedZoneId: Z1BKCTXD74EZPE
+    ap-southeast-1:
+      S3HostedZoneId: Z3O0J2DXBE1FTB
+    ap-southeast-2:
+      S3HostedZoneId: Z1WCIGYICN2BYD
+    ap-northeast-1:
+      S3HostedZoneId: Z2M4EHUR26P7ZW
+    sa-east-1:
+      S3HostedZoneId: Z31GFT0UA1I2HV
+
+Conditions:
+  # HasSubdomainName is false if paramSubdomain value is empty string
+  HasSubdomainName: !Not [!Equals [!Ref paramSubdomain, '']] 
+
+Resources:
+  myS3BucketForRootDomain:
+    Type: 'AWS::S3::Bucket'
+    # DeletionPolicy: Retain # keep S3 bucket when its stack is deleted
+    Properties:
+      BucketName: !Ref S3BucketName # use the name of your domain, such as example.com
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        # ErrorDocument: error.html
+      # VersioningConfiguration: # turn versioning on in case we need to rollback newly built files to older version
+      #   Status: Enabled
+      # AccessControl: PublicRead # throws an error: Bucket cannot have public ACLs set with BlockPublicAccess enabled
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+
+  #Our second (subdomain) bucket will not host a static website. We will keep it empty and configure it to route traffic to the first bucket.
+  myS3BucketForSubdomain:
+    Condition: HasSubdomainName # skip this resource if paramSubdomain value is empty string
+    Type: 'AWS::S3::Bucket'
+    # DeletionPolicy: Retain # keep S3 bucket when its stack is deleted
+    Properties:
+      BucketName:  my-subdomain.my-domain-name # use the name of subdomain with domain, such as www.example.com
+      WebsiteConfiguration:
+        RedirectAllRequestsTo: # Configure the bucket to route traffic to the S3 bucket for root domain
+          HostName: !Ref myS3BucketForRootDomain
+          Protocol: http
+      AccessControl: BucketOwnerFullControl
+
+  ## We need to give a public read access to S3 bucket objects 
+  myPolicyForS3BucketForRootDomain:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref myS3BucketForRootDomain
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub "${myS3BucketForRootDomain.Arn}/*"
+
+  myRoute53HostedZone:
+    Type: 'AWS::Route53::HostedZone'
+    Properties:
+      HostedZoneConfig: 
+        Comment: !Sub My public hosted zone for ${paramRootDomain}
+      Name: !Ref paramRootDomain
+      HostedZoneTags: 
+        - Key: mastering-cloudformation
+          Value: !Ref paramUniqueTagName
+
+  myRoute53RecordSetGroupForRootDomain:
+    Type: 'AWS::Route53::RecordSetGroup'
+    Properties:
+      HostedZoneId: !Ref paramHostedZoneId #This refers to the ID of the Route 53 hosted zone you want to use for your root domain (example.com)
+      RecordSets:
+        - Name: !Ref paramRootDomain  # point to an S3 bucket with root domain in the same account (such as example.com)
+          Type: A # 'A' routes traffic to an IPv4 address and some AWS resources
+          AliasTarget:
+              DNSName: !Sub s3-website-${AWS::Region}.amazonaws.com
+              HostedZoneId: !FindInMap # note, that it is different from paramHostedZoneId - this hosted zone is for region that you created the bucket in!
+                - RegionMap            # This retrieves the ID of the Route 53 hosted zone where the S3 bucket you're pointing to resides. It's crucial because S3 buckets have their own hosted zone specific to the region they're created in.
+                - !Ref 'AWS::Region'
+                - S3HostedZoneId
+
+  myRoute53RecordSetGroupForSubdomain:
+    Condition: HasSubdomainName # skip this resource if paramSubdomain value is empty string
+    Type: 'AWS::Route53::RecordSetGroup'
+    Properties:
+      HostedZoneId: !Ref paramHostedZoneId # the same as !Ref myRoute53HostedZone
+      RecordSets:
+        - Name: !Sub ${paramSubdomain}.${paramRootDomain} # point to an S3 bucket with subdomain in the same account (such as www.example.com)
+          Type: A # 'A' routes traffic to an IPv4 address and some AWS resources
+          AliasTarget:
+              DNSName: !Sub s3-website-${AWS::Region}.amazonaws.com 
+              HostedZoneId: !FindInMap # note, that it is different from paramHostedZoneId - this hosted zone is for region that you created the bucket in!
+                - RegionMap
+                - !Ref 'AWS::Region'
+                - S3HostedZoneId                
+
+                
+Outputs:
+  outputS3WebsiteURLForRootDomain:
+    Description: Amazon S3 website endpoint for root domain
+    Value: !GetAtt myS3BucketForRootDomain.WebsiteURL
+  outputS3WebsiteURLForSubomain:
+    Condition: HasSubdomainName
+    Description: Amazon S3 website endpoint for subdomain
+    Value: !GetAtt myS3BucketForSubdomain.WebsiteURL
+
+  outputRoute53HostedZoneId:
+    Description: Public hosted zone ID (such as Z23ABC4XYZL05B)
+    Value: !GetAtt myRoute53HostedZone.Id # the same as !Ref myRoute53HostedZone  
+  outputRoute53HostedZoneNameServers:
+    Description: List of name servers for newly created public hosted zone
+    Value: !Join [', ', !GetAtt myRoute53HostedZone.NameServers] 
+
+  outputWebsiteURLForRootDomain:
+    Description: Website url for root domain
+    Value: !Sub 'http://${paramRootDomain}/'
+  outputWebsiteURLForSubomain:
+    Condition: HasSubdomainName 
+    Description: Website url for subdomain
+    Value: !Sub 'http://${paramSubdomain}.${paramRootDomain}/'
