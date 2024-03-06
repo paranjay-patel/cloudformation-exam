@@ -340,10 +340,10 @@ Outputs:
   outputS3WebsiteURLForRootDomain:
     Description: Amazon S3 website endpoint for root domain
     Value: !GetAtt myS3BucketForRootDomain.WebsiteURL
-  outputS3WebsiteURLForSubomain:
-    Condition: HasSubdomainName
-    Description: Amazon S3 website endpoint for subdomain
-    Value: !GetAtt myS3BucketForSubdomain.WebsiteURL
+  # outputS3WebsiteURLForSubomain:
+  #   Condition: HasSubdomainName
+  #   Description: Amazon S3 website endpoint for subdomain
+  #   Value: !GetAtt myS3BucketForSubdomain.WebsiteURL
 
   outputRoute53HostedZoneId:
     Description: Public hosted zone ID (such as Z23ABC4XYZL05B)
@@ -355,10 +355,10 @@ Outputs:
   outputWebsiteURLForRootDomain:
     Description: Website url for root domain
     Value: !Sub 'http://${paramRootDomain}/'
-  outputWebsiteURLForSubomain:
-    Condition: HasSubdomainName 
-    Description: Website url for subdomain
-    Value: !Sub 'http://${paramSubdomain}.${paramRootDomain}/'
+  # outputWebsiteURLForSubomain:
+  #   Condition: HasSubdomainName 
+  #   Description: Website url for subdomain
+  #   Value: !Sub 'http://${paramSubdomain}.${paramRootDomain}/'
 
   outputS3WebsiteURLForRootDomain:
     Description: Amazon S3 website endpoint for root domain
@@ -366,12 +366,12 @@ Outputs:
   outputS3RegionalDomainNameForRootDomain:
     Description:  Regional domain name of S3 bucket for root domain
     Value: !GetAtt myS3BucketForRootDomain.RegionalDomainName 
-  outputS3WebsiteURLForSubdomain:
-    Description: Amazon S3 website endpoint for subdomain
-    Value: !GetAtt myS3BucketForSubdomain.WebsiteURL
-  outputS3RegionalDomainNameForSubdomain:
-    Description:  Regional domain name of S3 bucket for subdomain
-    Value: !GetAtt myS3BucketForSubdomain.RegionalDomainName    
+  # outputS3WebsiteURLForSubdomain:
+  #   Description: Amazon S3 website endpoint for subdomain
+  #   Value: !GetAtt myS3BucketForSubdomain.WebsiteURL
+  # outputS3RegionalDomainNameForSubdomain:
+  #   Description:  Regional domain name of S3 bucket for subdomain
+  #   Value: !GetAtt myS3BucketForSubdomain.RegionalDomainName    
 
   outputCertificateArn:
     Description: Issued SSL certificate Arn
