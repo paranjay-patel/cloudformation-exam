@@ -11,6 +11,10 @@ Metadata:
           default: VPC Parameters 
         Parameters: 
          - VpcCIDRBlock 
+         - PublicSubnet1CidrBlock
+         - PublicSubnet2CidrBlock
+         - PrivateSubnet1CidrBlock
+         - PrivateSubnet2CidrBlock
 
       - Label:  
           default: DB Parameters 
@@ -30,6 +34,23 @@ Parameters:
     Description: CIDR block for the VPC
     Default: 10.0.0.0/16
     Type: String
+  PublicSubnet1CidrBlock:
+    Description: CIDR block for the public subnet 1
+    Default: 10.0.1.0/24
+    Type: String
+  PublicSubnet2CidrBlock:
+    Description: CIDR block for the public subnet 2
+    Default: 10.0.2.0/24
+    Type: String
+  PrivateSubnet1CidrBlock:
+    Description: CIDR block for the private subnet 1
+    Default: 10.0.3.0/24
+    Type: String
+  PrivateSubnet2CidrBlock:
+    Description: CIDR block for the private subnet 2
+    Default: 10.0.4.0/24
+    Type: String
+  
 
   DBInstanceIdentifier:
    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'

@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DBInstanceIdentifier:
+    Description: 'Identifier for the RDS instance'
+    Default: "rds"
+    Type: String
+  DBMasterUsername:
+    Description: 'Master username for the RDS instance'
+    Default: "mydatabase"
+    Type: String
+  DBMasterPassword:
+    Description: 'Master password for the RDS instance'
+    Default: "Pal123Pal123"
+    Type: String
+    NoEcho: true
+  SubnetId1:
+    Description: 'ID of the subnet to launch the RDS instance in'
+    Default: "subnet-0ddb142199b26f275"
+    Type: String
+  SubnetId2:
+    Description: 'ID of the subnet to launch the RDS instance in'
+    Default: "subnet-015d0b6b6ce39f4b8"
+    Type: String
+Resources:
+  MyDBInstance:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBInstanceIdentifier: !Ref DBInstanceIdentifier
+      Engine: 'postgres'
+      EngineVersion: '15.2'
+      DBInstanceClass: 'db.t3.medium'
+      AllocatedStorage: 20
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterPassword
+      PubliclyAccessible: false
+      Tags:
+        - Key: Name
+          Value: 'MyPostgreSQLDB'
+  DBSubnetGroup:
+    Type: 'AWS::RDS::DBSubnetGroup'
+    Properties:
+      DBSubnetGroupDescription: 'Subnet group for RDS'
+      SubnetIds:
+        - !Ref SubnetId1
+        - !Ref SubnetId2
+  MyDBSecret:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: 'MyDBSecret'
+      Description: 'Credentials for PostgreSQL database'
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+Outputs:
+  RDSInstanceEndpoint:
+    Description: 'Endpoint address of the RDS instance'
+    Value: !GetAtt MyDBInstance.Endpoint.Address
+  DBSecretARN:
+    Description: 'ARN of the secret storing database credentials'
+    Value: !Ref MyDBSecret

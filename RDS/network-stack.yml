@@ -4,8 +4,25 @@ Description: vpc , 2 private and 2 public subnet, 3 route tables, 1 internet gat
 Parameters:
   VpcCIDRBlock:
     Description: CIDR block for the VPC
+    Default: 10.0.0.0/16
     Type: String
-    # Default: 10.0.0.0/16
+
+  PublicSubnet1CidrBlock:
+    Description: CIDR block for the public subnet 1
+    Default: 10.0.1.0/24
+    Type: String
+  PublicSubnet2CidrBlock:
+    Description: CIDR block for the public subnet 2
+    Default: 10.0.2.0/24
+    Type: String
+  PrivateSubnet1CidrBlock:
+    Description: CIDR block for the private subnet 1
+    Default: 10.0.3.0/24
+    Type: String
+  PrivateSubnet2CidrBlock:
+    Description: CIDR block for the private subnet 2
+    Default: 10.0.4.0/24
+    Type: String
 
 Resources:
   MyVPC:
@@ -35,7 +52,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref MyVPC
-      CidrBlock: 10.0.1.0/24
+      CidrBlock: !Ref PublicSubnet1CidrBlock
       AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
@@ -45,31 +62,31 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref MyVPC
-      CidrBlock: 10.0.2.0/24
+      CidrBlock: !Ref PublicSubnet2CidrBlock
       AvailabilityZone: !Select [1, !GetAZs '']
       Tags:
         - Key: Name
           Value: PublicSubnet2
 
-  DBSubnet:
+  DBSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref MyVPC
-      CidrBlock: 10.0.3.0/24
+      CidrBlock: !Ref PrivateSubnet1CidrBlock
       AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
-          Value: DBSubnet
+          Value: DBSubnet1
 
-  PrivateSubnet2:
+  DBSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref MyVPC
-      CidrBlock: 10.0.4.0/24
+      CidrBlock: !Ref PrivateSubnet2CidrBlock
       AvailabilityZone: !Select [1, !GetAZs '']
       Tags:
         - Key: Name
-          Value: PrivateSubnet2
+          Value: DBSubnet2
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -115,17 +132,42 @@ Resources:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
-  DBSubnetAssociation:
+  PrivateSubnet1Association:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref DBSubnet
+      SubnetId: !Ref DBSubnet1
       RouteTableId: !Ref PrivateRouteTable1
 
   PrivateSubnet2Association:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref PrivateSubnet2
+      SubnetId: !Ref DBSubnet2
       RouteTableId: !Ref PrivateRouteTable2
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: server security group
+      GroupDescription: security group for rds ec2 instance
+      VpcId: !Ref MyVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: '0.0.0.0/0'
+      # SecurityGroupEgress:
+      #   - Security Group Rule
+      # Tags:
+      #   - Key:
+      #     Value:
 
 Outputs:
   VpcId:
@@ -146,18 +188,25 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-PublicSubnet2Id"
 
-  DBSubnetId:
+  DBSubnetId1:
     Description: Private Subnet 1 ID
-    Value: !Ref DBSubnet
+    Value: !Ref DBSubnet1
     Export:
       # Name: !Sub "${AWS::StackName}-DBSubnetId"
-      Name: DBSubnetId
+      Name: DBSubnetId1
 
-  PrivateSubnet2Id:
+  DBSubnetId2:
     Description: Private Subnet 2 ID
-    Value: !Ref PrivateSubnet2
+    Value: !Ref DBSubnet2
     Export:
-      Name: !Sub "${AWS::StackName}-PrivateSubnet2Id"
+      Name: DBSubnetId2
+      # Name: !Sub "${AWS::StackName}-PrivateSubnet2Id"
+
+  SecurityGroup:
+    Description: Security group id for server
+    Value: !Ref SecurityGroup
+    Export: 
+      Name: !Sub "${AWS::StackName}-SecurityGroup"
   
 
 # Outputs:
