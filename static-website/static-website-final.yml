@@ -57,27 +57,6 @@ Mappings:
 ##  ==================== RESOURSES ====================  ##
 
 Resources:
-  # myS3BucketForRootDomain:
-  #   Type: 'AWS::S3::Bucket'
-  #   # DeletionPolicy: Retain # keep S3 bucket when its stack is deleted
-  #   Properties:
-  #     BucketName: !Ref S3BucketName # use the name of your domain, such as example.com
-  #     WebsiteConfiguration:
-  #       IndexDocument: index.html
-  #       # ErrorDocument: error.html
-  #     # VersioningConfiguration: # turn versioning on in case we need to rollback newly built files to older version
-  #     #   Status: Enabled
-  #     # AccessControl: PublicRead # throws an error: Bucket cannot have public ACLs set with BlockPublicAccess enabled
-  #     OwnershipControls:
-  #       Rules:
-  #         - ObjectOwnership: ObjectWriter
-  #     PublicAccessBlockConfiguration:
-  #       BlockPublicAcls: false
-  #       BlockPublicPolicy: false
-  #       IgnorePublicAcls: false
-  #       RestrictPublicBuckets: false
-
-
   #Our second (subdomain) bucket will not host a static website. We will keep it empty and configure it to route traffic to the first bucket.
   myS3BucketForRootdomain:
     # Condition: HasSubdomainName # skip this resource if paramSubdomain value is empty string
