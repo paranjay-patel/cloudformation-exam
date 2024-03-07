@@ -215,14 +215,20 @@ Outputs:
   SecurityGroupArray:
     Description: Security group id for server
     # Value: !Ref SecurityGroupDBSubnet2
-    Value : !Join [",", !Ref SecurityGroup] #The !Join function concatenates the security group IDs into a single string, separated by commas.
+    Value : !Join [",", [!GetAtt SecurityGroup.GroupId]] #The !Join function concatenates the security group IDs into a single string, separated by commas.
     Export: 
       # Name: !Sub "${AWS::StackName}-SecurityGroup"
-      Name: ECSSecurityGroup
+      Name: ECSSecurityGroupArray
   
   SubnetIdArray:
     Description: Security group id for server
-    Value : !Join [",", !Ref PrivateSubnet1, !Ref PrivateSubnet2, !Ref PublicSubnet1, !Ref PublicSubnet2] #The !Join function concatenates the security group IDs into a single string, separated by commas.
+    Value:
+      Fn::Join:
+        - ","
+        - - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+          - !Ref PublicSubnet1
+          - !Ref PublicSubnet2
     Export: 
       # Name: !Sub "${AWS::StackName}-SecurityGroup"
       Name: SubnetIdArray
