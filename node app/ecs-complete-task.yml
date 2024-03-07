@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  ECSRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service: 'ecs.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: 'ecs-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+
+  ECSFargateTaskDefinition:
+    Type: 'AWS::ECS::TaskDefinition'
+    Properties:
+      Family: 'sample-nodejs-task'
+      Cpu: '512'
+      Memory: '512'
+      NetworkMode: 'awsvpc'
+      ExecutionRoleArn: !GetAtt ECSRole.Arn
+      TaskRoleArn: !GetAtt ECSRole.Arn
+      RequiresCompatibilities:
+        - 'FARGATE'
+      ContainerDefinitions:
+        - Name: 'sample-nodejs-container'
+          Image: 'your-nodejs-image'
+          PortMappings:
+            - ContainerPort: 3000
+          Environment:
+            - Name: 'ENV_VAR_1'
+              Value: '{{resolve:ssm:/path/to/parameter1:1}}'
+            - Name: 'ENV_VAR_2'
+              Value: '{{resolve:ssm:/path/to/parameter2:1}}'
+
+  ECSFargateService:
+    Type: 'AWS::ECS::Service'
+    Properties:
+      Cluster: 'your-ecs-cluster'
+      ServiceName: 'sample-nodejs-service'
+      TaskDefinition: !Ref ECSFargateTaskDefinition
+      DesiredCount: 1
+      LaunchType: 'FARGATE'
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets:
+            - 'subnet-1'
+            - 'subnet-2'
+          SecurityGroups:
+            - 'your-security-group'
+      LoadBalancers:
+        - ContainerName: 'sample-nodejs-container'
+          ContainerPort: 3000
+          TargetGroupArn: !Ref ECSFargateTargetGroup
+
+  ECSFargateTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      Name: 'sample-nodejs-target-group'
+      Port: 3000
+      Protocol: HTTP
+      TargetType: ip
+      VpcId: 'your-vpc-id'
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: '/health' # Adjust as per your application
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 3
+      UnhealthyThresholdCount: 3
+
+Outputs:
+  LoadBalancerDNSName:
+    Value: !GetAtt ECSFargateTargetGroup.LoadBalancerDNSName
