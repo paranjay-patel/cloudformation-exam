@@ -85,7 +85,7 @@ Resources:
           Image: paranjay1/tindog:latest
           PortMappings:
             - ContainerPort: 80
-          Environment:
+          # Environment:
             # - Name: entryPoint
             #   Value: 'sh, -c'
             # - Name: command

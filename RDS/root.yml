@@ -30,6 +30,7 @@ Metadata:
          - MultiAZ
 
 Parameters:
+  ###################  VPC  #######################
   VpcCIDRBlock:
     Description: CIDR block for the VPC
     Default: 10.0.0.0/16
@@ -51,6 +52,7 @@ Parameters:
     Default: 10.0.4.0/24
     Type: String
   
+  ###################  RDS  ######################
 
   DBInstanceIdentifier:
    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
@@ -142,31 +144,23 @@ Parameters:
    Description: The version number of the database engine to use.
    Type: String
 
-# Rules:
-#   set of rules
-
-# Mappings:
-#   set of mappings
-
-# Conditions:
-#   set of conditions
-
-# Transform:
-#   set of transforms
-
 Resources:
   VPC:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/network-stack.yml
+      TemplateURL: #https://cloudformation-exam.s3.amazonaws.com/node+app/nested-network.yml
       Parameters:
         VpcCIDRBlock: !Ref VpcCIDRBlock
-        
+        PublicSubnet1CidrBlock: !Ref PublicSubnet1CidrBlock
+        PublicSubnet2CidrBlock: !Ref PublicSubnet2CidrBlock
+        PrivateSubnet1CidrBlock: !Ref PrivateSubnet1CidrBlock
+        PrivateSubnet2CidrBlock: !Ref PrivateSubnet2CidrBlock
+
   RDS:
     Type: AWS::CloudFormation::Stack
     DependsOn: VPC
     Properties:
-      TemplateURL: https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/RDS.yml
+      TemplateURL: #https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/RDS.yml
       Parameters:  
         AllocatedStorage: !Ref AllocatedStorage
         AvailabilityZone: !Select [ 0, !GetAZs '' ]
@@ -179,6 +173,12 @@ Resources:
         MasterUsername: !Ref MasterUsername
         MasterUserPassword: !Ref MasterUserPassword
         MultiAZ: !Ref MultiAZ 
+       
+  ParameterStore:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://cloudformation-exam.s3.amazonaws.com/node+app/nested-parameter-store.yml
+      Parameters:  
+        ParameterStoreUser: !Ref ParameterStoreUser
+        ParameterStorePassword: !Ref ParameterStorePassword
 
-# Outputs:
-#   set of outputs

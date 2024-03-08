@@ -4,24 +4,24 @@ Description: vpc , 2 private and 2 public subnet, 3 route tables, 1 internet gat
 Parameters:
   VpcCIDRBlock:
     Description: CIDR block for the VPC
-    Default: 10.0.0.0/16
+    # Default: 10.0.0.0/16
     Type: String
 
   PublicSubnet1CidrBlock:
     Description: CIDR block for the public subnet 1
-    Default: 10.0.1.0/24
+    # Default: 10.0.1.0/24
     Type: String
   PublicSubnet2CidrBlock:
     Description: CIDR block for the public subnet 2
-    Default: 10.0.2.0/24
+    # Default: 10.0.2.0/24
     Type: String
   PrivateSubnet1CidrBlock:
     Description: CIDR block for the private subnet 1
-    Default: 10.0.3.0/24
+    # Default: 10.0.3.0/24
     Type: String
   PrivateSubnet2CidrBlock:
     Description: CIDR block for the private subnet 2
-    Default: 10.0.4.0/24
+    # Default: 10.0.4.0/24
     Type: String
 
 Resources:
@@ -35,7 +35,7 @@ Resources:
         - Key: Name
           Value: MyVPC
 
-  InternetGateway:
+  InternetGateway:  
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
@@ -53,7 +53,7 @@ Resources:
     Properties:
       VpcId: !Ref MyVPC
       CidrBlock: !Ref PublicSubnet1CidrBlock
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select [0, !GetAZs 'us-east-1']
       Tags:
         - Key: Name
           Value: PublicSubnet1
@@ -63,22 +63,22 @@ Resources:
     Properties:
       VpcId: !Ref MyVPC
       CidrBlock: !Ref PublicSubnet2CidrBlock
-      AvailabilityZone: !Select [1, !GetAZs '']
+      AvailabilityZone: !Select [1, !GetAZs 'us-east-1']
       Tags:
         - Key: Name
           Value: PublicSubnet2
 
-  DBSubnet1:
+  PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref MyVPC
       CidrBlock: !Ref PrivateSubnet1CidrBlock
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select [0, !GetAZs 'us-east-1']
       Tags:
         - Key: Name
-          Value: DBSubnet1
+          Value: PrivateSubnet1
 
-  DBSubnet2:
+  PrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref MyVPC
@@ -86,7 +86,7 @@ Resources:
       AvailabilityZone: !Select [1, !GetAZs '']
       Tags:
         - Key: Name
-          Value: DBSubnet2
+          Value: PrivateSubnet2
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -135,13 +135,13 @@ Resources:
   PrivateSubnet1Association:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref DBSubnet1
+      SubnetId: !Ref PrivateSubnet1
       RouteTableId: !Ref PrivateRouteTable1
 
   PrivateSubnet2Association:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref DBSubnet2
+      SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable2
 
   SecurityGroup:
@@ -174,47 +174,61 @@ Outputs:
     Description: VPC ID
     Value: !Ref MyVPC
     Export:
-      Name: !Sub "${AWS::StackName}-VpcId"
+      # Name: !Sub "${AWS::StackName}-VpcId"
+      Name: VPCID
 
   PublicSubnet1Id:
     Description: Public Subnet 1 ID
     Value: !Ref PublicSubnet1
     Export:
-      Name: !Sub "${AWS::StackName}-PublicSubnet1Id"
+      # Name: !Sub "${AWS::StackName}-PublicSubnet1Id"
+      Name: PublicSubnet1Id
 
   PublicSubnet2Id:
     Description: Public Subnet 2 ID
     Value: !Ref PublicSubnet2
     Export:
-      Name: !Sub "${AWS::StackName}-PublicSubnet2Id"
+      # Name: !Sub "${AWS::StackName}-PublicSubnet2Id"
+      Name: PublicSubnet2Id
 
-  DBSubnetId1:
+  PrivateSubnet1Id:
     Description: Private Subnet 1 ID
-    Value: !Ref DBSubnet1
+    Value: !Ref PrivateSubnet1
     Export:
       # Name: !Sub "${AWS::StackName}-DBSubnetId"
-      Name: DBSubnetId1
+      Name: PrivateSubnet1Id
 
-  DBSubnetId2:
+  PrivateSubnet2Id:
     Description: Private Subnet 2 ID
-    Value: !Ref DBSubnet2
+    Value: !Ref PrivateSubnet2
     Export:
-      Name: DBSubnetId2
+      Name: PrivateSubnet2Id
       # Name: !Sub "${AWS::StackName}-PrivateSubnet2Id"
 
   SecurityGroup:
     Description: Security group id for server
     Value: !Ref SecurityGroup
     Export: 
-      Name: !Sub "${AWS::StackName}-SecurityGroup"
+      # Name: !Sub "${AWS::StackName}-SecurityGroup"
+      Name: ECSSecurityGroup
+
+  SecurityGroupArray:
+    Description: Security group id for server
+    # Value: !Ref SecurityGroupDBSubnet2
+    Value : !Join [",", [!GetAtt SecurityGroup.GroupId]] #The !Join function concatenates the security group IDs into a single string, separated by commas.
+    Export: 
+      # Name: !Sub "${AWS::StackName}-SecurityGroup"
+      Name: ECSSecurityGroupArray
   
-
-# Outputs:
-#   LocalLambdaExecRole:
-#     Description: Lambda Execution Role
-#     Value: !GetAtt LocalLambdaExecRole.Arn
-#     Export:
-#       Name: !Sub "${AWS::StackName}-LocalLambdaExecRole"
-
-
-#  Role: !ImportValue LocalLambdaExecRole
+  SubnetIdArray:
+    Description: Security group id for server
+    Value:
+      Fn::Join:
+        - ","
+        - - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+          - !Ref PublicSubnet1
+          - !Ref PublicSubnet2
+    Export: 
+      # Name: !Sub "${AWS::StackName}-SecurityGroup"
+      Name: SubnetIdArray

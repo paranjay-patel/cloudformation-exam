@@ -8,7 +8,7 @@ Metadata:
   AWS::CloudFormation::Interface: 
     ParameterGroups:  
       - Label:  
-          default: VPC Parameters 
+          default: VPC  
         Parameters: 
          - VpcCIDRBlock 
          - PublicSubnet1CidrBlock
@@ -16,18 +16,18 @@ Metadata:
          - PrivateSubnet1CidrBlock
          - PrivateSubnet2CidrBlock
 
-      # - Label:  
-      #     default: DB Parameters 
-      #   Parameters: 
-      #    - DBInstanceIdentifier 
-      #    - DBName 
-      #    - MasterUsername 
-      #    - MasterUserPassword 
-      #    - EngineVersion 
-      #    - BackupRetentionPeriod 
-      #    - AllocatedStorage 
-      #    - DBInstanceClass 
-      #    - MultiAZ
+      - Label:  
+          default: ECS  
+        Parameters: 
+         - ECSClusterName
+         - ECSServiceName 
+         - LoadBalancerName
+
+      - Label:  
+          default: Parameter Store 
+        Parameters: 
+         - ParameterStoreUser
+         - ParameterStorePassword 
 
 Parameters:
   ###############  VPC   ######################
@@ -70,13 +70,12 @@ Parameters:
   ParameterStorePassword:
     Type: String
     Default: logicwind
-  
 
 Resources:
   VPC:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/network-stack.yml
+      TemplateURL: https://cloudformation-exam.s3.amazonaws.com/node+app/nested-network.yml
       Parameters:
         VpcCIDRBlock: !Ref VpcCIDRBlock
         PublicSubnet1CidrBlock: !Ref PublicSubnet1CidrBlock
@@ -88,7 +87,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: VPC
     Properties:
-      TemplateURL: #https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/RDS.yml
+      TemplateURL: https://cloudformation-exam.s3.amazonaws.com/node+app/nested-ecs.yml
       Parameters:  
         ECSClusterName: !Ref ECSClusterName
         ECSServiceName: !Ref ECSServiceName
@@ -97,7 +96,7 @@ Resources:
   ParameterStore:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: #https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/RDS.yml
+      TemplateURL: https://cloudformation-exam.s3.amazonaws.com/node+app/nested-parameter-store.yml
       Parameters:  
         ParameterStoreUser: !Ref ParameterStoreUser
         ParameterStorePassword: !Ref ParameterStorePassword
