@@ -30,6 +30,7 @@ Metadata:
       #    - MultiAZ
 
 Parameters:
+  ###############  VPC   ######################
   VpcCIDRBlock:
     Description: CIDR block for the VPC
     Default: 10.0.0.0/16
@@ -50,6 +51,25 @@ Parameters:
     Description: CIDR block for the private subnet 2
     Default: 10.0.4.0/24
     Type: String
+
+  ###################   ECS   ######################
+  ECSClusterName:
+    Type: String
+    Default: ecs-tutorial
+  ECSServiceName:
+    Type: String
+    Default: ecs-tutorial-td
+  LoadBalancerName:
+    Type: String
+    Default: ecs-tutorial-lb
+
+  ################   PARAMETERS   ###################
+  ParameterStoreUser:
+    Type: String
+    Default: logicwind
+  ParameterStorePassword:
+    Type: String
+    Default: logicwind
   
 
 Resources:
@@ -59,6 +79,10 @@ Resources:
       TemplateURL: https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/network-stack.yml
       Parameters:
         VpcCIDRBlock: !Ref VpcCIDRBlock
+        PublicSubnet1CidrBlock: !Ref PublicSubnet1CidrBlock
+        PublicSubnet2CidrBlock: !Ref PublicSubnet2CidrBlock
+        PrivateSubnet1CidrBlock: !Ref PrivateSubnet1CidrBlock
+        PrivateSubnet2CidrBlock: !Ref PrivateSubnet2CidrBlock
         
   ECS:
     Type: AWS::CloudFormation::Stack
@@ -66,9 +90,15 @@ Resources:
     Properties:
       TemplateURL: #https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/RDS.yml
       Parameters:  
-        AllocatedStorage: !Ref AllocatedStorage
+        ECSClusterName: !Ref ECSClusterName
+        ECSServiceName: !Ref ECSServiceName
+        LoadBalancerName: !Ref LoadBalancerName
 
-
-# Outputs:
-#   set of outputs
-
+  ParameterStore:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: #https://cloudformation-exam-paranjay.s3.ap-south-1.amazonaws.com/RDS.yml
+      Parameters:  
+        ParameterStoreUser: !Ref ParameterStoreUser
+        ParameterStorePassword: !Ref ParameterStorePassword
+       

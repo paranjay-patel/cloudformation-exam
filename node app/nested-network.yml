@@ -4,24 +4,24 @@ Description: vpc , 2 private and 2 public subnet, 3 route tables, 1 internet gat
 Parameters:
   VpcCIDRBlock:
     Description: CIDR block for the VPC
-    Default: 10.0.0.0/16
+    # Default: 10.0.0.0/16
     Type: String
 
   PublicSubnet1CidrBlock:
     Description: CIDR block for the public subnet 1
-    Default: 10.0.1.0/24
+    # Default: 10.0.1.0/24
     Type: String
   PublicSubnet2CidrBlock:
     Description: CIDR block for the public subnet 2
-    Default: 10.0.2.0/24
+    # Default: 10.0.2.0/24
     Type: String
   PrivateSubnet1CidrBlock:
     Description: CIDR block for the private subnet 1
-    Default: 10.0.3.0/24
+    # Default: 10.0.3.0/24
     Type: String
   PrivateSubnet2CidrBlock:
     Description: CIDR block for the private subnet 2
-    Default: 10.0.4.0/24
+    # Default: 10.0.4.0/24
     Type: String
 
 Resources:
@@ -53,7 +53,7 @@ Resources:
     Properties:
       VpcId: !Ref MyVPC
       CidrBlock: !Ref PublicSubnet1CidrBlock
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select [0, !GetAZs 'us-east-1']
       Tags:
         - Key: Name
           Value: PublicSubnet1
@@ -63,7 +63,7 @@ Resources:
     Properties:
       VpcId: !Ref MyVPC
       CidrBlock: !Ref PublicSubnet2CidrBlock
-      AvailabilityZone: !Select [1, !GetAZs '']
+      AvailabilityZone: !Select [1, !GetAZs 'us-east-1']
       Tags:
         - Key: Name
           Value: PublicSubnet2
@@ -73,7 +73,7 @@ Resources:
     Properties:
       VpcId: !Ref MyVPC
       CidrBlock: !Ref PrivateSubnet1CidrBlock
-      AvailabilityZone: !Select [0, !GetAZs '']
+      AvailabilityZone: !Select [0, !GetAZs 'us-east-1']
       Tags:
         - Key: Name
           Value: PrivateSubnet1
@@ -232,13 +232,3 @@ Outputs:
     Export: 
       # Name: !Sub "${AWS::StackName}-SecurityGroup"
       Name: SubnetIdArray
-
-# Outputs:
-#   LocalLambdaExecRole:
-#     Description: Lambda Execution Role
-#     Value: !GetAtt LocalLambdaExecRole.Arn
-#     Export:
-#       Name: !Sub "${AWS::StackName}-LocalLambdaExecRole"
-
-
-#  Role: !ImportValue LocalLambdaExecRole

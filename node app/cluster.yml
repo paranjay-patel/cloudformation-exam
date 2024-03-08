@@ -1,46 +1,119 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: The template used to create an ECS Cluster from the ECS Console.
+Description: The template used to create an ECS Service from the ECS Console.
 Parameters:
   ECSClusterName:
     Type: String
-    Description: Specifies the ECS Cluster Name with which the resources would be associated
     Default: ecs-tutorial
-  SecurityGroupIds:
-    Type: CommaDelimitedList
-    Description: Optional - Specifies the Comma separated list of the Security Group Id of an existing Security Group.
-    Default: ''
-  VpcId:
+  ECSServiceName:
     Type: String
-    Description: Optional - Specifies the ID of an existing VPC in which to launch your container instances. If you specify a VPC ID, you must specify a list of existing subnets in that VPC. If you do not specify a VPC ID, a new VPC is created
-      with at least 1 subnet.
-    Default: ''
-    AllowedPattern: "^(?:vpc-[0-9a-f]{8,17}|)$"
-    ConstraintDescription: VPC Id must begin with 'vpc-' and have a valid uuid
-  SubnetIds:
+    Default: ecs-tutorial-service
+  SecurityGroupIDs:
     Type: CommaDelimitedList
-    Description: Optional - Specifies the Comma separated list of existing VPC Subnet Ids where ECS instances will run
-    Default: ''
+    Default: sg-0323e1a844692ded8
+  SubnetIDs:
+    Type: CommaDelimitedList
+    Default: subnet-028f746d2c69f960d,subnet-0f3b24e256e3c04de,subnet-0c0e91b679a30f5b8,subnet-0b63f552939ebe4bf,subnet-0b3479d8927145b41,subnet-0f39e093711f7ebf5
+  VpcID:
+    Type: String
+    Default: vpc-0f4d898a38fd3cb9c
+  LoadBalancerName:
+    Type: String
+    Default: ecs-tutorial-lb
 Resources:
-  ECSCluster:
-    Type: AWS::ECS::Cluster
+  ECSService:
+    Type: AWS::ECS::Service
     Properties:
-      ClusterName:
-        Ref: ECSClusterName
-      CapacityProviders:
-      - FARGATE
-      - FARGATE_SPOT
-      ClusterSettings:
-      - Name: containerInsights
-        Value: disabled
-      Configuration:
-        ExecuteCommandConfiguration:
-          Logging: DEFAULT
-      ServiceConnectDefaults:
-        Namespace: ecs-tutorial
+      Cluster: ecs-tutorial
+      CapacityProviderStrategy:
+      - CapacityProvider: FARGATE
+        Base: 0
+        Weight: 1
+      TaskDefinition: arn:aws:ecs:us-east-1:818971154557:task-definition/ecs-tutorial-td:1
+      ServiceName: ecs-tutorial-service
+      SchedulingStrategy: REPLICA
+      DesiredCount: 2
+      LoadBalancers:
+      - ContainerName: tindog
+        ContainerPort: 80
+        LoadBalancerName:
+          Ref: AWS::NoValue
+        TargetGroupArn:
+          Ref: TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            Ref: SecurityGroupIDs
+          Subnets:
+            Ref: SubnetIDs
+      PlatformVersion: LATEST
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      DeploymentController:
+        Type: ECS
+      ServiceConnectConfiguration:
+        Enabled: false
       Tags: []
+      EnableECSManagedTags: true
+    DependsOn:
+    - Listener
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Name: ecs-tutorial-lb
+      SecurityGroups:
+        Ref: SecurityGroupIDs
+      Subnets:
+        Ref: SubnetIDs
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckPath: "/"
+      Name: tindog-target-group
+      Port: 80
+      Protocol: HTTP
+      TargetType: ip
+      HealthCheckProtocol: HTTP
+      VpcId:
+        Ref: VpcID
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: '300'
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: TargetGroup
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 80
+      Protocol: HTTP
 Outputs:
-  ECSCluster:
-    Description: The created cluster.
+  ClusterName:
+    Description: The cluster used to create the service.
     Value:
-      Ref: ECSCluster
+      Ref: ECSClusterName
+  ECSService:
+    Description: The created service.
+    Value:
+      Ref: ECSService
+  LoadBalancer:
+    Description: The created load balancer.
+    Value:
+      Ref: LoadBalancer
+  Listener:
+    Description: The created listener.
+    Value:
+      Ref: Listener
+  TargetGroup:
+    Description: The created target group.
+    Value:
+      Ref: TargetGroup

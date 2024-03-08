@@ -1,0 +1,50 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >
+  paramters stored in parameter store
+
+Parameters:
+  ParameterStoreUser:
+    Type: String
+    Default: logicwind
+  ParameterStorePassword:
+    Type: String
+    Default: logicwind
+
+Resources:
+  ParameterStore1:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: username
+      Value: !Ref ParameterStoreUser
+
+  ParameterStore2:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: password
+      Value: !Ref ParameterStorePassword
+
+Outputs:
+  ParameterName1:
+    Description: Name of the parameter 1
+    Value: !Ref ParameterStore1
+
+  ParameterValue1:
+    Description: Value of the parameter 1
+    Value: !GetAtt ParameterStore1.Value
+    Export:
+      Name: username
+    
+
+  ParameterName2:
+    Description: Name of the parameter 2
+    Value: !Ref ParameterStore2
+
+  ParameterValue2:
+    Description: Value of the parameter 2
+    Value: !GetAtt ParameterStore2.Value
+    Export:
+      Name: password

@@ -20,6 +20,13 @@ Parameters:
   LoadBalancerName:
     Type: String
     Default: ecs-tutorial-lb
+  # ParameterStoreUser:
+  #   Type: String
+  #   Default: logicwind
+  # ParameterStorePassword:
+  #   Type: String
+  #   Default: logicwind
+
 Resources:
   ECSService:
     Type: AWS::ECS::Service
@@ -29,9 +36,9 @@ Resources:
       - CapacityProvider: FARGATE
         Base: 0
         Weight: 1
-      TaskDefinition: arn:aws:ecs:us-east-1:818971154557:task-definition/ecs-tutorial-td:1
+      TaskDefinition: !Ref TaskDefinition #arn:aws:ecs:us-east-1:818971154557:task-definition/ecs-tutorial-td:1
       ServiceName: ecs-tutorial-td
-      SchedulingStrategy: REPLICA
+      # SchedulingStrategy: REPLICA
       DesiredCount: 2
       LoadBalancers:
       - ContainerName: tindog
@@ -43,40 +50,76 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: !ImportValue ECSSecurityGroup
+          SecurityGroups: !Split [",", !ImportValue ECSSecurityGroup]
           Subnets:
             - !ImportValue PublicSubnet1Id
             - !ImportValue PublicSubnet2Id
             - !ImportValue PrivateSubnet1Id
             - !ImportValue PrivateSubnet2Id
-      PlatformVersion: LATEST
-      DeploymentConfiguration:
-        MaximumPercent: 200
-        MinimumHealthyPercent: 100
-        DeploymentCircuitBreaker:
-          Enable: true
-          Rollback: true
+      # PlatformVersion: LATEST
+      # DeploymentConfiguration:
+      #   MaximumPercent: 200
+      #   MinimumHealthyPercent: 100
+      #   DeploymentCircuitBreaker:
+      #     Enable: true
+      #     Rollback: true
       DeploymentController:
         Type: ECS
-      ServiceConnectConfiguration:
-        Enabled: false
-      Tags: []
-      EnableECSManagedTags: true
+      # ServiceConnectConfiguration:
+      #   Enabled: false
+      # Tags: []
+      # EnableECSManagedTags: true
     DependsOn:
     - Listener
 
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: tindog-website-family
+      Cpu: 512 #0.5cpu
+      Memory: 1024  #1gb
+      NetworkMode: awsvpc
+      # ExecutionRoleArn: !Ref ExecutionRole
+      ContainerDefinitions:
+        - Name: tindog
+          Image: paranjay1/tindog:latest
+          PortMappings:
+            - ContainerPort: 80
+          Environment:
+            # - Name: entryPoint
+            #   Value: 'sh, -c'
+            # - Name: command
+            #   Value: >-
+            #     /bin/sh -c \"echo '<html> <head> <title>Amazon ECS Sample
+            #     App</title> <style>body {margin-top: 40px; background-color:
+            #     #333;} </style> </head><body> <div
+            #     style=color:white;text-align:center> <h1>Amazon ECS Sample
+            #     App</h1> <h2>Congratulations!</h2> <p>Your application is now
+            #     running on a container in Amazon ECS.</p> </div></body></html>'
+            #     >  /usr/local/apache2/htdocs/index.html && httpd-foreground\"
+          # EnvironmentFiles: []
+          # LogConfiguration:
+          #   LogDriver: awslogs
+          #   Options:
+          #     awslogs-region: !Ref AWS::Region
+          #     awslogs-group: !Ref LogGroup
+          #     awslogs-stream-prefix: ecs
+
+      RequiresCompatibilities:
+        - EC2
+        - FARGATE
 
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Type: application
       Name: ecs-tutorial-lb
-      SecurityGroups: !ImportValue ECSSecurityGroup
+      SecurityGroups: !Split [",", !ImportValue ECSSecurityGroup]
       Subnets:
         - !ImportValue PublicSubnet1Id
         - !ImportValue PublicSubnet2Id
-        - !ImportValue PrivateSubnet1Id
-        - !ImportValue PrivateSubnet2Id
+        # - !ImportValue PrivateSubnet1Id
+        # - !ImportValue PrivateSubnet2Id   #load balancer can not attched to private subnet
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -92,7 +135,6 @@ Resources:
       - Key: deregistration_delay.timeout_seconds
         Value: '300'
 
-
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -105,7 +147,20 @@ Resources:
       Port: 80
       Protocol: HTTP
 
-      
+  # ParameterStore1:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: username
+  #     Value: !Ref ParameterStoreUser
+
+  # ParameterStore2:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: password
+  #     Value: !Ref ParameterStorePassword
+
 Outputs:
   ClusterName:
     Description: The cluster used to create the service.
@@ -127,3 +182,9 @@ Outputs:
     Description: The created target group.
     Value:
       Ref: TargetGroup
+  LoadBalancerDNSName:
+    Description: The DNS name of the load balancer.
+    Value: !GetAtt LoadBalancer.DNSName
+    Export:
+      Name: LoadBalancerDNSName
+
