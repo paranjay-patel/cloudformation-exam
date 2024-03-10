@@ -72,7 +72,7 @@ Parameters:
   DBName:
     AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
     ConstraintDescription: The DB name should begin with a letter and should contain only alphanumerics
-    Default: lwhub
+    Default: paranjaydb
     Description: Postgres database name
     MaxLength: 64
     MinLength: 1

@@ -17,7 +17,7 @@ Parameters:
   DBName:
     # AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
     ConstraintDescription: The DB name should begin with a letter and should contain only alphanumerics
-    Default: mytestDB
+    Default: paranjaydb
     Description: Postgres database name
     MaxLength: 64
     MinLength: 1
@@ -123,13 +123,14 @@ Resources:
       # MasterUserPassword: !Join ["", ["{{resolve:secretsmanager:", !Ref MyDatabaseSecret, ":SecretString:password}}"]]
       MasterUsername: !Join ["", ["{{resolve:secretsmanager:", !ImportValue DatabaseSecretARN, ":SecretString:username}}"]]
       MasterUserPassword: !Join ["", ["{{resolve:secretsmanager:", !ImportValue DatabaseSecretARN, ":SecretString:password}}"]]
-
       PubliclyAccessible: false
+      DBName: !Ref db
       VPCSecurityGroups: 
         - !ImportValue RDSSecurityGroup  
       Tags:
         - Key: Name
           Value: 'MyPostgreSQLDB'
+        
 
   DBSubnetGroup:
     Type: 'AWS::RDS::DBSubnetGroup'
