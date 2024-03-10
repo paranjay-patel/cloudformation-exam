@@ -20,10 +20,6 @@ Parameters:
   paramRootDomain:
     Description: Specify a root domain for your website (such as example.com)
     Type: String  
-  
-  # paramHostedZoneId:
-  #   Description: Specify a public hosted zone ID for root domain
-  #   Type: String
 
   paramUniqueTagName:
     Description: Specify a unique name for tag
@@ -57,17 +53,16 @@ Mappings:
 ##  ==================== RESOURSES ====================  ##
 
 Resources:
-  #Our second (subdomain) bucket will not host a static website. We will keep it empty and configure it to route traffic to the first bucket.
   myS3BucketForRootdomain:
-    # Condition: HasSubdomainName # skip this resource if paramSubdomain value is empty string
+    # Condition: HasSubdomainName 
     Type: 'AWS::S3::Bucket'
-    # DeletionPolicy: Retain # keep S3 bucket when its stack is deleted
+    # DeletionPolicy: Retain 
     Properties:
-      BucketName: !Ref S3BucketName # use the name of subdomain with domain, such as www.example.com
+      BucketName: !Ref S3BucketName 
       WebsiteConfiguration:
         IndexDocument: index.html
         # ErrorDocument: error.html
-      VersioningConfiguration: # turn versioning on in case we need to rollback newly built files to older version
+      VersioningConfiguration:
         Status: Enabled
       AccessControl: BucketOwnerFullControl
 
@@ -99,36 +94,27 @@ Resources:
     Type: 'AWS::Route53::RecordSetGroup'
     Properties:
       Comment: Route53 record for CloudFront distributions for root domain and subdomain
-      HostedZoneId: !Ref myRoute53HostedZone #This refers to the ID of the Route 53 hosted zone you want to use for your root domain (example.com)
+      HostedZoneId: !Ref myRoute53HostedZone
       RecordSets:
-        - Name: !Ref paramRootDomain  # point to an S3 bucket with root domain in the same account (such as example.com)
-          Type: A # 'A' routes traffic to an IPv4 address and some AWS resources
+        - Name: !Ref paramRootDomain  
+          Type: A 
           AliasTarget:
               DNSName: !Sub s3-website-${AWS::Region}.amazonaws.com
-              HostedZoneId: !FindInMap # note, that it is different from paramHostedZoneId - this hosted zone is for region that you created the bucket in!
-                - RegionMap            # This retrieves the ID of the Route 53 hosted zone where the S3 bucket you're pointing to resides. It's crucial because S3 buckets have their own hosted zone specific to the region they're created in.
+              HostedZoneId: !FindInMap 
+                - RegionMap            
                 - !Ref 'AWS::Region'
                 - S3HostedZoneId
          
-
-  # request public SSL/TLS certificate from AWS Certificate Manager (ACM) for our domain name and all its subdomains 
-  # it helps to secure network communications and establish the identity of websites over the Internet 
   mySSLCertificate:
     Type: 'AWS::CertificateManager::Certificate'
     Properties:
-      DomainName: !Ref paramRootDomain # root domain (such as example.com)
+      DomainName: !Ref paramRootDomain
       SubjectAlternativeNames:
-        - !Sub '*.${paramRootDomain}' # request a wildcard certificate for all subdomains
+        - !Sub '*.${paramRootDomain}' 
       DomainValidationOptions:
-        - DomainName: !Ref paramRootDomain # DNS record for the root domain
+        - DomainName: !Ref paramRootDomain 
           HostedZoneId: !Ref paramHostedZoneId
-        # Note: If a certificate with automatic (Route53) DNS validation contains both a base domain name and the wildcard for that domain (e.g., example.com and *.example.com), the corresponding DNS validation records are identical.
-        # This seems to have caused problems for the automated CloudFormation DNS validation. Solving the problem by removing the redundant wildcard entries from the DomainValidationOption.  
-        # Source: https://github.com/aws/aws-cdk/pull/9291 
-        # - DomainName: !Sub '*.${paramRootDomain}' # DNS record for the all subdomains
-        #   HostedZoneId: !Ref paramHostedZoneId
-        #   ValidationDomain: !Ref paramRootDomain  
-      ValidationMethod: DNS  #ValidationMethod: Specifies the validation method to be used by ACM. In this case, it's set to DNS, indicating that DNS validation will be used. With DNS validation, ACM provides a DNS record that you need to add to your DNS configuration to prove domain ownership.
+      ValidationMethod: DNS  
       Tags:
         - Key: mastering-cloudformation
           Value: !Ref paramUniqueTagName
@@ -137,7 +123,7 @@ Resources:
     Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: 'OAI for S3 origins'  # a comment to describe the origin access identity
+        Comment: 'OAI for S3 origins'  
 
   #Create CloudFront distribution for subdomain that contains static website
   myCloudFrontDistributionForRootdomain:
@@ -145,23 +131,19 @@ Resources:
     Properties:
       DistributionConfig:
         Comment: CloudFront distribution points to S3 bucket for subdomain
-        Origins: # info about origins for this distribution
-          - DomainName: !Sub '${paramRootDomain}.s3.${AWS::Region}.amazonaws.com' # Regional domain name of S3 bucket for subdomain (outputS3RegionalDomainNameForSubomain)
-            Id:  !Sub 'S3Origin-${paramRootDomain}' # unique identifier of an origin access control for this origin
+        Origins: 
+          - DomainName: !Sub '${paramRootDomain}.s3.${AWS::Region}.amazonaws.com' 
+            Id:  !Sub 'S3Origin-${paramRootDomain}' 
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${myCloudFrontOAI}'
-          #  CustomOriginConfig:    
-          #     HTTPPort: 80 # required
-          #     HTTPSPort: 443 # required
-          #     OriginProtocolPolicy: 'http-only'
-        Aliases: # info about CNAMEs (alternate domain names), if any, for this distribution
+
+        Aliases: 
           - !Ref $paramRootDomain
-        # let CloudFront replace HTTP status codes in the 4xx and 5xx range with custom error messages before returning the response to the viewer
         CustomErrorResponses:
-          - ErrorCode: 403 # 403 from S3 indicates that the file does not exists
-            ResponseCode: 404 # HTTP status code that you want CloudFront to return to the viewer along with the custom error pag
-            ResponsePagePath: '/error.html' # path to the custom error page that you want CloudFront to return to a viewer when your origin returns the HTTP status code specified by ErrorCode, for example, /4xx-errors/403-forbidden.html
-            ErrorCachingMinTTL: 60 # minimum amount of time, in seconds, that you want CloudFront to cache the HTTP status code specified in ErrorCode
+          - ErrorCode: 403 
+            ResponseCode: 404 
+            ResponsePagePath: '/error.html'
+            ErrorCachingMinTTL: 60 
         DefaultCacheBehavior:
           AllowedMethods:
             - GET
@@ -173,23 +155,17 @@ Resources:
             - OPTIONS
           Compress: true
           DefaultTTL: 3600 # in seconds, 1 hour
-          # ForwardedValues:
-          #   QueryString: false
-          #   Cookies:
-          #     Forward: none
           MaxTTL: 86400 # in seconds, 24 hours
           MinTTL: 60 # in seconds, 1 min
           TargetOriginId: !Ref 'S3Origin-${paramRootDomain}'
-          ViewerProtocolPolicy: 'redirect-to-https' # 'allow-all'
+          ViewerProtocolPolicy: 'redirect-to-https' 
         DefaultRootObject: 'index.html' 
-        Enabled: true # enable distribution
-        HttpVersion: http2 # the maximum HTTP version(s) that you want viewers to use to communicate with CloudFront
-        PriceClass: PriceClass_All # allowed values: PriceClass_100 | PriceClass_200 | PriceClass_All
+        Enabled: true 
+        HttpVersion: http2 
+        PriceClass: PriceClass_All
         ViewerCertificate:
           AcmCertificateArn: !Ref mySSLCertificate
           SslSupportMethod: sni-only
-  
-
 
   #The following piece of code helps to create a policy for S3 bucket for subdomain:
   myPolicyForS3BucketForRootdomain:
@@ -218,21 +194,16 @@ Resources:
               'aws:SecureTransport': false
                 
 Outputs:
-  # outputS3WebsiteURLForRootDomain:
-  #   Description: Amazon S3 website endpoint for root domain
-  #   Value: !GetAtt myS3BucketForRootDomain.WebsiteURL
   outputS3WebsiteURLForSubomain:
     Condition: HasSubdomainName
     Description: Amazon S3 website endpoint for subdomain
     Value: !GetAtt myS3BucketForSubdomain.WebsiteURL
-
   outputRoute53HostedZoneId:
     Description: Public hosted zone ID (such as Z23ABC4XYZL05B)
     Value: !GetAtt myRoute53HostedZone.Id # the same as !Ref myRoute53HostedZone  
   outputRoute53HostedZoneNameServers:
     Description: List of name servers for newly created public hosted zone
     Value: !Join [', ', !GetAtt myRoute53HostedZone.NameServers] 
-
   outputWebsiteURLForRootDomain:
     Description: Website url for root domain
     Value: !Sub 'http://${paramRootDomain}/'
@@ -240,30 +211,15 @@ Outputs:
     Condition: HasSubdomainName 
     Description: Website url for subdomain
     Value: !Sub 'http://${paramSubdomain}.${paramRootDomain}/'
-
-  # outputS3WebsiteURLForRootDomain:
-  #   Description: Amazon S3 website endpoint for root domain
-  #   Value: !GetAtt myS3BucketForRootDomain.WebsiteURL
-  # outputS3RegionalDomainNameForRootDomain:
-  #   Description:  Regional domain name of S3 bucket for root domain
-  #   Value: !GetAtt myS3BucketForRootDomain.RegionalDomainName 
   outputS3WebsiteURLForSubdomain:
     Description: Amazon S3 website endpoint for subdomain
     Value: !GetAtt myS3BucketForSubdomain.WebsiteURL
   outputS3RegionalDomainNameForSubdomain:
     Description:  Regional domain name of S3 bucket for subdomain
     Value: !GetAtt myS3BucketForSubdomain.RegionalDomainName    
-
   outputCertificateArn:
     Description: Issued SSL certificate Arn
     Value: !Ref mySSLCertificate
-
-  # outputCloudFrontDistributionForSubdomainId:
-  #   Description: CloudFront distribution ID for subdomain
-  #   Value: !Ref myCloudFrontDistributionForSubdomain
-  # outputCloudFrontDistributionDomainNameForSubdomain:
-  #   Description: CloudFront distribution domain name for subdomain
-  #   Value: !GetAtt myCloudFrontDistributionForSubdomain.DomainName
   outputCloudFrontDistributionForRootDomainId:
     Description: CloudFront distribution ID for root domain
     Value: !Ref myCloudFrontDistributionForRootDomain

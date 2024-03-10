@@ -4,24 +4,23 @@ Description: vpc , 2 private and 2 public subnet, 3 route tables, 1 internet gat
 Parameters:
   VpcCIDRBlock:
     Description: CIDR block for the VPC
-    # Default: 10.0.0.0/16
+    Default: 10.0.0.0/16
     Type: String
-
   PublicSubnet1CidrBlock:
     Description: CIDR block for the public subnet 1
-    # Default: 10.0.1.0/24
+    Default: 10.0.1.0/24
     Type: String
   PublicSubnet2CidrBlock:
     Description: CIDR block for the public subnet 2
-    # Default: 10.0.2.0/24
+    Default: 10.0.2.0/24
     Type: String
   PrivateSubnet1CidrBlock:
     Description: CIDR block for the private subnet 1
-    # Default: 10.0.3.0/24
+    Default: 10.0.3.0/24
     Type: String
   PrivateSubnet2CidrBlock:
     Description: CIDR block for the private subnet 2
-    # Default: 10.0.4.0/24
+    Default: 10.0.4.0/24
     Type: String
 
 Resources:
@@ -147,7 +146,7 @@ Resources:
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: server security group
+      GroupName: RDS Security Group
       GroupDescription: security group for rds ec2 instance
       VpcId: !Ref MyVPC
       SecurityGroupIngress:
@@ -162,6 +161,10 @@ Resources:
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
           CidrIp: '0.0.0.0/0'
       # SecurityGroupEgress:
       #   - Security Group Rule
@@ -210,7 +213,7 @@ Outputs:
     Value: !Ref SecurityGroup
     Export: 
       # Name: !Sub "${AWS::StackName}-SecurityGroup"
-      Name: ECSSecurityGroup
+      Name: RDSSecurityGroup
 
   SecurityGroupArray:
     Description: Security group id for server
@@ -218,7 +221,7 @@ Outputs:
     Value : !Join [",", [!GetAtt SecurityGroup.GroupId]] #The !Join function concatenates the security group IDs into a single string, separated by commas.
     Export: 
       # Name: !Sub "${AWS::StackName}-SecurityGroup"
-      Name: ECSSecurityGroupArray
+      Name: SecurityGroupArray
   
   SubnetIdArray:
     Description: Security group id for server

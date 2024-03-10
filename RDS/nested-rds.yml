@@ -6,46 +6,46 @@ Description: >
 
 Parameters:
   DBInstanceIdentifier:
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    # AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
     ConstraintDescription: The instance name should begin with a letter and should contain only alphanumerics
-    # Default: mypostgresinstance
+    Default: mypostgresinstance
     Description: Name of the instance identifier 
     MaxLength: 60
     MinLength: 1
     Type: String
 
   DBName:
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    # AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
     ConstraintDescription: The DB name should begin with a letter and should contain only alphanumerics
-    # Default: testdb1
+    Default: mytestDB
     Description: Postgres database name
     MaxLength: 64
     MinLength: 1
     Type: String
  
-  MasterUsername:
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
-    ConstraintDescription: The DB username should begin with a letter and should contain only alphanumerics
-    # Default: masteruser
-    Description: Username for postgres database access
-    MaxLength: 16
-    MinLength: 1
-    NoEcho: true
-    Type: String
+  # MasterUsername:
+  #   # AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+  #   ConstraintDescription: The DB username should begin with a letter and should contain only alphanumerics
+  #   Default: masteruser
+  #   Description: Username for postgres database access
+  #   MaxLength: 16
+  #   MinLength: 1
+  #   NoEcho: true
+  #   Type: String
 
-  MasterUserPassword:
-    AllowedPattern: '[a-zA-Z0-9]*'
-    ConstraintDescription: The db passoword should contain only alphanumerics
-    # Default: masteruser
-    Description: Password for postgres database masteruser
-    MaxLength: 41
-    MinLength: 8
-    NoEcho: true
-    Type: String
+  # MasterUserPassword:
+  #   # AllowedPattern: '[a-zA-Z0-9]*'
+  #   ConstraintDescription: The db passoword should contain only alphanumerics
+  #   Default: masteruser
+  #   Description: Password for postgres database masteruser
+  #   MaxLength: 41
+  #   MinLength: 8
+  #   NoEcho: true
+  #   Type: String
  
   BackupRetentionPeriod:
     ConstraintDescription: DB backup retention period should be between 0 and 35 days
-    # Default: 0
+    Default: 0
     Description: The number of days for which the automatic DB snapshots are retained
     MaxValue: 35
     MinValue: 0
@@ -53,7 +53,7 @@ Parameters:
 
   AllocatedStorage:
     ConstraintDescription: The size allocated for the instance should between 5 and 1024Gb
-    # Default: 20
+    Default: 20
     Description: The size of the instance in Gb
     MaxValue: 65536
     MinValue: 5
@@ -68,7 +68,7 @@ Parameters:
      - db.t3.small
      - db.t3.micro
     ConstraintDescription: Select a valid database instance type
-    # Default: db.t3.micro
+    Default: db.t3.micro
     Description: The database instance type
     Type: String
 
@@ -77,7 +77,7 @@ Parameters:
      - true
      - false
     ConstraintDescription: Select either true or false
-    # Default: false
+    Default: false
     Description: Creates a Multi-AZ Postgres Amazon RDS instance
     Type: String
 
@@ -102,16 +102,10 @@ Parameters:
     Description: The version number of the database engine to use.
     Type: String
  
-  AvailabilityZone:
-    Description: The availability zone for the RDS instance
-   #  Default: ap-south-2a
-    Type: String
-
-  MyDBSecret:
-    Description: name of secrest manager
-    Default: 'MyDBSecret'
-    Type: String
-
+  # AvailabilityZone:
+  #   Description: The availability zone for the RDS instance
+  #   Default: us-east-1
+  #   Type: String
 
 Resources:
   MyDBInstance:
@@ -123,9 +117,16 @@ Resources:
       DBInstanceClass: !Ref DBInstanceClass
       AllocatedStorage: !Ref AllocatedStorage
       DBSubnetGroupName: !Ref DBSubnetGroup
-      MasterUsername: !Ref DBMasterUsername
-      MasterUserPassword: !Ref DBMasterPassword
+      # MasterUsername: !Ref MasterUsername
+      # # MasterUserPassword: !Ref MasterUserPassword
+      # MasterUsername: !Join ["", ["{{resolve:secretsmanager:", !Ref MyDatabaseSecret, ":SecretString:username}}"]]
+      # MasterUserPassword: !Join ["", ["{{resolve:secretsmanager:", !Ref MyDatabaseSecret, ":SecretString:password}}"]]
+      MasterUsername: !Join ["", ["{{resolve:secretsmanager:", !ImportValue DatabaseSecretARN, ":SecretString:username}}"]]
+      MasterUserPassword: !Join ["", ["{{resolve:secretsmanager:", !ImportValue DatabaseSecretARN, ":SecretString:password}}"]]
+
       PubliclyAccessible: false
+      VPCSecurityGroups: 
+        - !ImportValue RDSSecurityGroup  
       Tags:
         - Key: Name
           Value: 'MyPostgreSQLDB'
@@ -135,26 +136,10 @@ Resources:
     Properties:
       DBSubnetGroupDescription: 'Subnet group for RDS'
       SubnetIds:
-        - !Ref PrivateSubnet1Id
-        - !Ref PrivateSubnet2Id
-
-  MyDBSecret:
-    Type: 'AWS::SecretsManager::Secret'
-    Properties:
-      Name: !Ref MyDBSecret
-      Description: 'Credentials for PostgreSQL database'
-      GenerateSecretString:
-        SecretStringTemplate: '{"username": "admin"}'
-        GenerateStringKey: 'password'
-        PasswordLength: 16
-        ExcludeCharacters: '"@/\'
+        - !ImportValue  PrivateSubnet1Id
+        - !ImportValue  PrivateSubnet2Id
 
 Outputs:
   RDSInstanceEndpoint:
     Description: 'Endpoint address of the RDS instance'
     Value: !GetAtt MyDBInstance.Endpoint.Address
-  DBSecretARN:
-    Description: 'ARN of the secret storing database credentials'
-    Value: !Ref MyDBSecret
-
-
