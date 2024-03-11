@@ -79,24 +79,24 @@ Parameters:
     Type: String
  
   # MasterUsername:
-  #  AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
-  #  ConstraintDescription: The DB username should begin with a letter and should contain only alphanumerics
-  #  Default: masteruser
-  #  Description: Username for postgres database access
-  #  MaxLength: 16
-  #  MinLength: 1
-  #  NoEcho: true
-  #  Type: String
+  #   AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+  #   ConstraintDescription: The DB username should begin with a letter and should contain only alphanumerics
+  #   Default: masteruser
+  #   Description: Username for postgres database access
+  #   MaxLength: 16
+  #   MinLength: 1
+  #   NoEcho: true
+  #   Type: String
  
   # MasterUserPassword:
-  #  AllowedPattern: '[a-zA-Z0-9]*'
-  #  ConstraintDescription: The db passoword should contain only alphanumerics
-  #  Default: masteruser
-  #  Description: Password for postgres database masteruser
-  #  MaxLength: 41
-  #  MinLength: 8
-  #  NoEcho: true
-  #  Type: String
+  #   AllowedPattern: '[a-zA-Z0-9]*'
+  #   ConstraintDescription: The db passoword should contain only alphanumerics
+  #   Default: masteruser
+  #   Description: Password for postgres database masteruser
+  #   MaxLength: 41
+  #   MinLength: 8
+  #   NoEcho: true
+  #   Type: String
   
   BackupRetentionPeriod:
     ConstraintDescription: DB backup retention period should be between 0 and 35 days
